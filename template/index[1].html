@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivicTrack - Community Issue Reporting</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CivicTrack Logo" class="logo">
+            <h1>CivicTrack</h1>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="message" style="display: none;"></div>
+        
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            
+            <div class="controls">
+                <div class="filter-section">
+                    <div class="form-group">
+                        <label for="statusFilter">Status</label>
+                        <select id="statusFilter">
+                            <option value="">All</option>
+                            <option value="reported">Reported</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="categoryFilter">Category</label>
+                        <select id="categoryFilter">
+                            <option value="">All</option>
+                            <option value="roads">Roads</option>
+                            <option value="water">Water</option>
+                            <option value="garbage">Garbage</option>
+                            <option value="lighting">Lighting</option>
+                            <option value="safety">Public Safety</option>
+                            <option value="obstructions">Obstructions</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="radiusFilter">Radius (km)</label>
+                        <select id="radiusFilter">
+                            <option value="1">1 km</option>
+                            <option value="3">3 km</option>
+                            <option value="5" selected>5 km</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button id="applyFilters" class="apply-btn">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+                
+                <div class="issue-form">
+                    <div class="form-title">
+                        <i class="fas fa-plus-circle"></i>
+                        <h2>Report New Issue</h2>
+                    </div>
+                    
+                    <form id="issueForm">
+                        <div class="form-group">
+                            <label for="title">Title*</label>
+                            <input type="text" id="title" placeholder="Briefly describe the issue" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="description">Description*</label>
+                            <textarea id="description" placeholder="Provide detailed information about the issue" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="category">Category*</label>
+                            <select id="category" required>
+                                <option value="">Select a category</option>
+                                <option value="roads">Roads (potholes, obstructions)</option>
+                                <option value="water">Water Supply (leaks, low pressure)</option>
+                                <option value="garbage">Cleanliness (overflowing bins, garbage)</option>
+                                <option value="lighting">Lighting (broken or flickering lights)</option>
+                                <option value="safety">Public Safety (open manholes, exposed wiring)</option>
+                                <option value="obstructions">Obstructions (fallen trees, debris)</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" id="submitBtn">
+                            <i class="fas fa-paper-plane"></i> Submit Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
