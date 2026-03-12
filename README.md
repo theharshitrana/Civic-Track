@@ -2,6 +2,7 @@
 
 CivicTrack is a web-based platform that allows citizens to report and track civic issues in their locality—such as potholes, garbage accumulation, water leaks, and broken streetlights. It promotes transparency, accountability, and quick response by enabling real-time issue tracking and progress monitoring.
 
+a
 ---
 
 ## ✅ Features
