@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PublicTrack Admin Dashboard</title>
+    
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- App styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    
+    <style>
+        /* Admin specific styles */
+        .admin-badge {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #04202a;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: 12px;
+        }
+        
+        .admin-panel-toggle {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 30px;
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-panel-toggle:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        
+        .admin-panel-toggle .toggle-slider {
+            width: 40px;
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-panel-toggle .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-panel-toggle.active .toggle-slider::before {
+            left: 22px;
+            background: var(--accent-2);
+        }
+        
+        .resolution-panel {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--panel);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(255,255,255,0.05);
+            max-width: 350px;
+            display: none;
+            z-index: 1500;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .resolution-panel.active {
+            display: block;
+        }
+        
+        .selected-issue-info {
+            background: rgba(6,182,212,0.1);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 15px 0;
+            border-left: 3px solid var(--accent);
+        }
+        
+        .resolve-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .resolve-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16,185,129,0.3);
+        }
+        
+        .resolve-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .stat-item {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .stat-item:hover {
+            background: rgba(6,182,212,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: var(--subtext);
+        }
+        
+        .admin-logout {
+            color: #ff5c5c;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        
+        .admin-logout:hover {
+            background: rgba(255,92,92,0.1);
+            transform: scale(1.05);
+        }
+        
+        /* Admin marker style for selected issue */
+        .selected-issue-marker {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(6, 182, 212, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(6, 182, 212, 0);
+            }
+        }
+        
+        /* Filter indicators */
+        .active-filter {
+            background: var(--accent);
+            color: #04202a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+    </style>
+	 <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" />
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-box" role="status">
+            <div class="loader"><i class="fas fa-shield-alt fa-spin"></i></div>
+            <div class="loading-text">Loading Admin Dashboard...</div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="PublicTrack" class="brand-logo">
+                <div class="brand-text">
+                    <div class="brand-title">PublicTrack Admin</div>
+                    <div class="brand-sub" id="adminNameDisplay">Municipal Dashboard</div>
+                </div>
+                <span class="admin-badge" id="adminBadge">
+                    <i class="fas fa-shield-alt"></i> ADMIN MODE
+                </span>
+            </div>
+            
+            <div class="header-controls">
+                <!-- Admin Panel Toggle -->
+                <div class="admin-panel-toggle" id="adminPanelToggle" title="Toggle Resolution Panel">
+                    <i class="fas fa-gavel"></i>
+                    <span class="toggle-slider"></span>
+                </div>
+                
+                <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
+                    <i id="theme-icon" class="fas fa-moon"></i>
+                </button>
+                
+                <button id="start-tour" class="btn-sm" onclick="startAdminTour()">
+                    <i class="fas fa-compass"></i> Tour
+                </button>
+                
+                <button id="refresh-data" class="btn-ghost" title="Refresh map data">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+                
+                <button class="admin-logout" id="adminLogout" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Message bar -->
+    <div class="container">
+        <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+    </div>
+    
+    <!-- Main -->
+    <main class="container main-grid">
+        <!-- Map column -->
+        <section class="map-col">
+            <div class="map-topbar">
+                <div class="search-box">
+                    <input id="addressInput" type="search" placeholder="Search address, street, village or home..." aria-label="Search address" autocomplete="off">
+                    <button id="address-clear" class="icon-btn small" title="Clear"><i class="fas fa-times"></i></button>
+                    <ul id="addr-suggestions" class="suggestions" role="listbox" hidden></ul>
+                </div>
+                
+                <div class="map-controls">
+                    <button id="locate-me" class="map-btn" title="Use my location"><i class="fas fa-location-arrow"></i></button>
+                    <button id="zoom-in" class="map-btn" title="Zoom in"><i class="fas fa-plus"></i></button>
+                    <button id="zoom-out" class="map-btn" title="Zoom out"><i class="fas fa-minus"></i></button>
+                </div>
+            </div>
+            
+            <div id="map" class="map" aria-label="Map" style="height: 620px;"></div>
+        </section>
+        
+        <!-- Controls column -->
+        <aside class="controls-col" aria-label="Controls">
+            <div class="panel">
+                <h3><i class="fas fa-filter"></i> Find & Filter <span id="filterCount" class="active-filter" style="display:none;">0</span></h3>
+                
+                <label> Status
+                    <select id="statusFilter">
+                        <option value="">All statuses</option>
+                        <option value="reported">Reported</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </label>
+                
+                <label> Category
+                    <select id="categoryFilter">
+                        <option value="">All categories</option>
+                        <option value="roads">Roads</option>
+                        <option value="water">Water</option>
+                        <option value="garbage">Garbage</option>
+                        <option value="lighting">Lighting</option>
+                        <option value="safety">Public Safety</option>
+                        <option value="obstructions">Obstructions</option>
+                    </select>
+                </label>
+                
+                <label> Radius <span id="radiusValue">5 km</span>
+                    <input id="radiusFilter" type="range" min="1" max="50" value="5">
+                </label>
+                
+                <div class="panel-actions">
+                    <button id="applyFilters" class="btn-primary full">Apply Filters</button>
+                    <button id="clearFilters" class="btn-ghost full" style="margin-top: 8px;">Clear Filters</button>
+                </div>
+                
+                <!-- Admin Stats - CONNECTED TO BACKEND -->
+                <div class="admin-stats">
+                    <div class="stat-item" onclick="filterByStatus('all')" title="Click to show all">
+                        <div class="stat-value" id="totalIssues">-</div>
+                        <div class="stat-label">Total Issues</div>
+                    </div>
+                    <div class="stat-item" onclick="filterByStatus('reported')" title="Click to show reported">
+                        <div class="stat-value" id="pendingIssues">-</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-item" onclick="filterByStatus('resolved')" title="Click to show resolved">
+                        <div class="stat-value" id="resolvedToday">-</div>
+                        <div class="stat-label">Resolved</div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div style="margin-top: 15px; display: flex; gap: 8px;">
+                    <button class="btn-ghost" style="flex: 1;" onclick="exportIssues()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="btn-ghost" style="flex: 1;" onclick="printReport()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+    
+    <!-- Resolution Panel (appears when admin toggle is active) - CONNECTED TO BACKEND -->
+    <div class="resolution-panel" id="resolutionPanel">
+        <h3><i class="fas fa-check-circle"></i> Resolve Issue</h3>
+        <p class="muted">Click on any issue marker on the map to select it for resolution.</p>
+        
+        <div class="selected-issue-info" id="selectedIssueInfo">
+            <strong>No issue selected</strong>
+            <p class="muted" style="margin-top: 8px;">Click on a marker to select an issue</p>
+        </div>
+        
+        <div id="resolutionActions">
+            <button class="resolve-btn" id="resolveIssueBtn" disabled onclick="resolveSelectedIssue()">
+                <i class="fas fa-check"></i> Mark as Resolved
+            </button>
+            <button class="btn-ghost" id="cancelSelectionBtn" style="width: 100%; margin-top: 8px; display: none;" onclick="clearSelection()">
+                Cancel Selection
+            </button>
+        </div>
+        
+        <p class="small-muted" style="margin-top: 12px;">
+            <i class="fas fa-info-circle"></i> Issues marked as resolved will be updated for all users in real-time.
+        </p>
+    </div>
+    
+    <!-- Tour modal - CONNECTED -->
+    <div id="tour-overlay" class="tour-overlay" aria-hidden="true">
+        <div class="tour-card" role="dialog" aria-modal="true">
+            <header class="tour-head">
+                <h4 id="tour-title">Admin Dashboard Tour</h4>
+                <button id="tour-skip" class="icon-btn" onclick="closeTour()">Skip</button>
+            </header>
+            
+            <div id="tour-content" class="tour-body" tabindex="0"></div>
+            
+            <footer class="tour-foot">
+                <button id="tour-prev" class="btn-ghost" onclick="prevTour()">Previous</button>
+                <div class="tour-center"><span id="tour-step">1/6</span></div>
+                <button id="tour-next" class="btn-primary" onclick="nextTour()">Next</button>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    
+    <script>
+        // ==================== INITIALIZATION ====================
+        console.log('Admin dashboard loading...');
+        
+        // Check if user is logged in as admin
+        const adminToken = sessionStorage.getItem('adminToken');
+        const adminName = sessionStorage.getItem('adminName') || 'Admin';
+        
+        if (!adminToken) {
+            console.log('No admin token, redirecting to login');
+            window.location.href = '/admin/login';
+        } else {
+            document.getElementById('adminNameDisplay').textContent = `Welcome, ${adminName}`;
+        }
+        
+        // ==================== GLOBAL VARIABLES ====================
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const messageEl = document.getElementById('message');
+        const adminPanelToggle = document.getElementById('adminPanelToggle');
+        const resolutionPanel = document.getElementById('resolutionPanel');
+        const selectedIssueInfo = document.getElementById('selectedIssueInfo');
+        const resolveBtn = document.getElementById('resolveIssueBtn');
+        const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
+        const adminLogout = document.getElementById('adminLogout');
+        
+        let map, issuesLayer, selectedIssue = null;
+        let selectedMarker = null;
+        let socket = null;
+        let allIssues = [];
+        let currentFilters = {
+            status: '',
+            category: '',
+            radius: 5
+        };
+        
+        // Category colors
+        const CATEGORY_COLORS = {
+            roads: '#ff7a29',
+            water: '#36b3f6',
+            garbage: '#9aa0a6',
+            lighting: '#ffd34d',
+            safety: '#ff5c5c',
+            obstructions: '#9b59b6'
+        };
+        
+        // ==================== HELPER FUNCTIONS ====================
+        function showMessage(text, options = {}) {
+            messageEl.hidden = false;
+            messageEl.innerHTML = `<span>${text}</span>`;
+            
+            if (options.retry) {
+                const btn = document.createElement('button');
+                btn.textContent = 'Retry';
+                btn.className = 'btn-ghost';
+                btn.style.marginLeft = '12px';
+                btn.onclick = options.retry;
+                messageEl.appendChild(btn);
+            }
+            
+            if (options.timeout) {
+                setTimeout(() => { messageEl.hidden = true; }, options.timeout);
+            }
+        }
+        
+        function escapeHtml(s = '') {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+        
+        function setLoading(show) {
+            loadingOverlay.setAttribute('aria-hidden', show ? 'false' : 'true');
+        }
+        
+        // ==================== MAP INITIALIZATION ====================
+        function initMap() {
+            console.log('Initializing map...');
+            map = L.map('map').setView([12.9716, 77.5946], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            
+            issuesLayer = L.layerGroup().addTo(map);
+            
+            // Load issues
+            fetchIssues();
+            
+            // Handle map click to clear selection
+            map.on('click', () => {
+                clearSelection();
+            });
+        }
+        
+        // ==================== FETCH ISSUES FROM BACKEND ====================
+        async function fetchIssues() {
+            setLoading(true);
+            
+            try {
+                const center = map.getCenter();
+                const radius = document.getElementById('radiusFilter').value;
+                const status = document.getElementById('statusFilter').value;
+                const category = document.getElementById('categoryFilter').value;
+                
+                // Update current filters
+                currentFilters = { status, category, radius };
+                
+                const params = new URLSearchParams({
+                    lat: center.lat,
+                    lng: center.lng,
+                    radius: radius,
+                    ...(status && { status }),
+                    ...(category && { category })
+                });
+                
+                console.log('Fetching issues with params:', params.toString());
+                
+                const response = await fetch(`/api/issues?${params}`);
+                const issues = await response.json();
+                
+                console.log(`Loaded ${issues.length} issues`);
+                allIssues = issues;
+                
+                // Clear existing markers
+                issuesLayer.clearLayers();
+                clearSelection();
+                
+                // Add markers
+                issues.forEach(issue => addIssueMarker(issue));
+                
+                // Update stats
+                updateStats();
+                
+                // Update filter indicator
+                updateFilterIndicator();
+                
+                showMessage(`Loaded ${issues.length} issues`, { timeout: 2000 });
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showMessage('Failed to load issues', { retry: fetchIssues });
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // ==================== FETCH ADMIN STATS FROM BACKEND ====================
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/admin/issues', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalIssues').textContent = data.stats.total || 0;
+                    document.getElementById('pendingIssues').textContent = data.stats.reported || 0;
+                    document.getElementById('resolvedToday').textContent = data.stats.resolved || 0;
+                } else {
+                    // Fallback to local counts
+                    const total = allIssues.length;
+                    const pending = allIssues.filter(i => i.status !== 'resolved').length;
+                    const resolved = allIssues.filter(i => i.status === 'resolved').length;
+                    
+                    document.getElementById('totalIssues').textContent = total;
+                    document.getElementById('pendingIssues').textContent = pending;
+                    document.getElementById('resolvedToday').textContent = resolved;
+                }
+            } catch (error) {
+                console.error('Stats error:', error);
+                // Fallback to local counts
+                const total = allIssues.length;
+                const pending = allIssues.filter(i => i.status !== 'resolved').length;
+                const resolved = allIssues.filter(i => i.status === 'resolved').length;
+                
+                document.getElementById('totalIssues').textContent = total;
+                document.getElementById('pendingIssues').textContent = pending;
+                document.getElementById('resolvedToday').textContent = resolved;
+            }
+        }
+        
+        // ==================== ADD MARKER TO MAP ====================
+        function addIssueMarker(issue) {
+            const lat = parseFloat(issue.latitude);
+            const lng = parseFloat(issue.longitude);
+            
+            if (isNaN(lat) || isNaN(lng)) return;
+            
+            // Different style for resolved issues
+            let markerColor = CATEGORY_COLORS[issue.category] || '#2ecc71';
+            let markerSize = '14px';
+            let borderColor = 'rgba(0,0,0,0.06)';
+            
+            if (issue.status === 'resolved') {
+                markerColor = '#10b981';
+                borderColor = 'rgba(16,185,129,0.3)';
+            }
+            
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    html: `<div style="width:${markerSize};height:${markerSize};border-radius:50%;background:${markerColor};border:2px solid white;box-shadow:0 0 0 2px ${borderColor};"></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9],
+                    className: issue.status === 'resolved' ? 'resolved-marker' : ''
+                })
+            });
+            
+            // Create popup content
+            const resolvedInfo = issue.resolved_at ? 
+                `<p class="small-muted" style="color:#10b981">✓ Resolved on ${new Date(issue.resolved_at).toLocaleDateString()}</p>` : '';
+            
+            const popupContent = `
+                <div style="min-width:200px;">
+                    <strong>${escapeHtml(issue.title)}</strong>
+                    <div style="margin:6px 0; display:flex; gap:6px;">
+                        <span style="background:${CATEGORY_COLORS[issue.category]}; padding:2px 6px; border-radius:4px; color:#000; font-size:11px;">${issue.category}</span>
+                        <span style="background:${issue.status === 'resolved' ? '#10b981' : 'rgba(255,255,255,0.1)'}; padding:2px 6px; border-radius:4px; font-size:11px;">${issue.status}</span>
+                    </div>
+                    <p style="margin:8px 0;">${escapeHtml(issue.description)}</p>
+                    ${resolvedInfo}
+                    <div style="font-size:11px; color:var(--muted);">
+                        ID: #${issue.id} • Reported: ${new Date(issue.created_at).toLocaleDateString()}
+                    </div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            
+            // Store issue data
+            marker.issueData = issue;
+            marker.issueId = issue.id;
+            
+            // Add click handler for resolution mode
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                if (resolutionPanel.classList.contains('active') && issue.status !== 'resolved') {
+                    selectIssueForResolution(issue, marker);
+                }
+            });
+            
+            marker.addTo(issuesLayer);
+        }
+        
+        // ==================== SELECT ISSUE FOR RESOLUTION ====================
+        function selectIssueForResolution(issue, marker) {
+            // Clear previous selection
+            if (selectedMarker && selectedMarker._icon) {
+                selectedMarker._icon.classList.remove('selected-issue-marker');
+            }
+            
+            selectedIssue = issue;
+            selectedMarker = marker;
+            
+            // Update info panel
+            selectedIssueInfo.innerHTML = `
+                <strong>Issue #${issue.id}: ${escapeHtml(issue.title)}</strong>
+                <p style="margin: 8px 0; font-size:13px;">${escapeHtml(issue.description)}</p>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <span style="background:${CATEGORY_COLORS[issue.category]}; padding: 4px 8px; border-radius: 4px; color: #000; font-size:12px;">${issue.category}</span>
+                    <span style="background:rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size:12px;">${issue.status}</span>
+                </div>
+                <div style="margin-top:8px; font-size:12px; color:var(--muted);">
+                    Location: ${issue.latitude.toFixed(4)}, ${issue.longitude.toFixed(4)}
+                </div>
+            `;
+            
+            // Enable resolve button
+            resolveBtn.disabled = false;
+            cancelSelectionBtn.style.display = 'block';
+            
+            // Highlight marker
+            if (marker._icon) {
+                marker._icon.classList.add('selected-issue-marker');
+            }
+            
+            // Open popup
+            marker.openPopup();
+            
+            showMessage(`Issue #${issue.id} selected for resolution`, { timeout: 2000 });
+        }
+        
+        // ==================== CLEAR SELECTION ====================
+        function clearSelection() {
+            if (selectedMarker && selectedMarker._icon) {
+                selectedMarker._icon.classList.remove('selected-issue-marker');
+            }
+            
+            selectedIssue = null;
+            selectedMarker = null;
+            
+            selectedIssueInfo.innerHTML = `
+                <strong>No issue selected</strong>
+                <p class="muted" style="margin-top: 8px;">Click on a marker to select an issue</p>
+            `;
+            
+            resolveBtn.disabled = true;
+            cancelSelectionBtn.style.display = 'none';
+        }
+        
+        // ==================== RESOLVE ISSUE (BACKEND CALL) ====================
+        async function resolveSelectedIssue() {
+            if (!selectedIssue) return;
+            
+            setLoading(true);
+            
+            try {
+                console.log(`Resolving issue #${selectedIssue.id}...`);
+                
+                const response = await fetch(`/api/admin/issues/${selectedIssue.id}/resolve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage(`✅ Issue #${selectedIssue.id} marked as resolved!`, { timeout: 3000 });
+                    
+                    // Update the marker
+                    if (selectedMarker) {
+                        // Remove highlight
+                        if (selectedMarker._icon) {
+                            selectedMarker._icon.classList.remove('selected-issue-marker');
+                        }
+                        
+                        // Update marker color
+                        selectedMarker.setIcon(L.divIcon({
+                            html: `<div style="width:14px;height:14px;border-radius:50%;background:#10b981;border:2px solid white;box-shadow:0 0 0 2px rgba(16,185,129,0.3);"></div>`,
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        }));
+                        
+                        // Update marker data
+                        selectedMarker.issueData.status = 'resolved';
+                        selectedMarker.issueData.resolved_at = new Date().toISOString();
+                        
+                        // Update popup
+                        const popupContent = selectedMarker.getPopup().getContent();
+                        const updatedContent = popupContent.replace('reported', 'resolved').replace('in_progress', 'resolved');
+                        selectedMarker.setPopupContent(updatedContent);
+                    }
+                    
+                    // Clear selection
+                    clearSelection();
+                    
+                    // Refresh issues and stats
+                    setTimeout(() => {
+                        fetchIssues();
+                    }, 500);
+                    
+                } else {
+                    showMessage(data.error || 'Failed to resolve issue', { timeout: 3000 });
+                }
+            } catch (error) {
+                console.error('Resolve error:', error);
+                showMessage('Error resolving issue', { timeout: 3000 });
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // ==================== FILTER FUNCTIONS ====================
+        function filterByStatus(status) {
+            document.getElementById('statusFilter').value = status === 'all' ? '' : status;
+            fetchIssues();
+        }
+        
+        function updateFilterIndicator() {
+            const filterCount = document.getElementById('filterCount');
+            const activeFilters = [];
+            
+            if (currentFilters.status) activeFilters.push('status');
+            if (currentFilters.category) activeFilters.push('category');
+            if (currentFilters.radius != 5) activeFilters.push('radius');
+            
+            if (activeFilters.length > 0) {
+                filterCount.style.display = 'inline';
+                filterCount.textContent = activeFilters.length;
+            } else {
+                filterCount.style.display = 'none';
+            }
+        }
+        
+        // ==================== TOUR FUNCTIONS ====================
+        const tourSteps = [
+            { title: 'Admin Dashboard', text: 'Welcome to the Admin Dashboard. Here you can manage all community issues.' },
+            { title: 'Map View', text: 'All reported issues appear on the map. Colors indicate categories.' },
+            { title: 'Resolution Mode', text: 'Click the toggle button to enter resolution mode, then click any issue to resolve it.' },
+            { title: 'Filters', text: 'Use filters to narrow down issues by status, category, or location.' },
+            { title: 'Statistics', text: 'Click on stats to quickly filter issues by status.' },
+            { title: 'Real-time Updates', text: 'All changes are instantly visible to public users via WebSocket.' }
+        ];
+        
+        let currentTourStep = 0;
+        
+        function startAdminTour() {
+            currentTourStep = 0;
+            document.getElementById('tour-overlay').setAttribute('aria-hidden', 'false');
+            document.getElementById('tour-overlay').style.display = 'flex';
+            updateTourStep();
+        }
+        
+        function updateTourStep() {
+            const step = tourSteps[currentTourStep];
+            document.getElementById('tour-content').innerHTML = `<h4>${step.title}</h4><p>${step.text}</p>`;
+            document.getElementById('tour-step').textContent = `${currentTourStep + 1}/${tourSteps.length}`;
+            
+            document.getElementById('tour-prev').disabled = currentTourStep === 0;
+            document.getElementById('tour-next').textContent = currentTourStep === tourSteps.length - 1 ? 'Finish' : 'Next';
+        }
+        
+        function nextTour() {
+            if (currentTourStep < tourSteps.length - 1) {
+                currentTourStep++;
+                updateTourStep();
+            } else {
+                closeTour();
+            }
+        }
+        
+        function prevTour() {
+            if (currentTourStep > 0) {
+                currentTourStep--;
+                updateTourStep();
+            }
+        }
+        
+        function closeTour() {
+            document.getElementById('tour-overlay').setAttribute('aria-hidden', 'true');
+            document.getElementById('tour-overlay').style.display = 'none';
+        }
+        
+        // ==================== EXPORT FUNCTIONS ====================
+        function exportIssues() {
+            const dataStr = JSON.stringify(allIssues, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `publictrack_export_${new Date().toISOString().slice(0,10)}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showMessage('✅ Issues exported successfully', { timeout: 2000 });
+        }
+        
+        function printReport() {
+            const reportWindow = window.open('', '_blank');
+            reportWindow.document.write(`
+                <html>
+                <head><title>PublicTrack Report</title>
+                <style>
+                    body { font-family: Arial; padding: 20px; }
+                    h1 { color: #06b6d4; }
+                    table { border-collapse: collapse; width: 100%; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background: #06b6d4; color: white; }
+                </style>
+                </head>
+                <body>
+                <h1>PublicTrack Issues Report</h1>
+                <p>Generated: ${new Date().toLocaleString()}</p>
+                <table>
+                    <tr><th>ID</th><th>Title</th><th>Category</th><th>Status</th><th>Date</th></tr>
+                    ${allIssues.map(i => `<tr>
+                        <td>${i.id}</td>
+                        <td>${escapeHtml(i.title)}</td>
+                        <td>${i.category}</td>
+                        <td>${i.status}</td>
+                        <td>${new Date(i.created_at).toLocaleDateString()}</td>
+                    </tr>`).join('')}
+                </table>
+                </body>
+                </html>
+            `);
+            reportWindow.document.close();
+        }
+        
+        // ==================== SOCKET.IO CONNECTION ====================
+        function initSocket() {
+            try {
+                socket = io();
+                
+                socket.on('connect', () => {
+                    console.log('Socket connected:', socket.id);
+                });
+                
+                socket.on('new_issue', (issue) => {
+                    console.log('New issue received:', issue);
+                    addIssueMarker(issue);
+                    fetchIssues(); // Refresh stats
+                    showMessage('📢 New issue reported!', { timeout: 3000 });
+                });
+                
+                socket.on('issue_updated', (issue) => {
+                    console.log('Issue updated:', issue);
+                    fetchIssues(); // Refresh the map
+                    showMessage('🔄 Issue status updated', { timeout: 2000 });
+                });
+                
+                socket.on('disconnect', () => {
+                    console.log('Socket disconnected');
+                });
+                
+            } catch (e) {
+                console.warn('Socket.io not available:', e);
+            }
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing admin dashboard...');
+            
+            // Initialize map
+            initMap();
+            
+            // Initialize socket
+            initSocket();
+            
+            // Theme toggle
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                document.getElementById('theme-icon').className = newTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+                localStorage.setItem('theme', newTheme);
+            });
+            
+            // Set theme
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('theme-icon').className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            
+            // Admin panel toggle
+            adminPanelToggle.addEventListener('click', () => {
+                adminPanelToggle.classList.toggle('active');
+                resolutionPanel.classList.toggle('active');
+                
+                if (resolutionPanel.classList.contains('active')) {
+                    showMessage('🔧 Resolution mode activated. Click any issue to resolve it.', { timeout: 3000 });
+                } else {
+                    clearSelection();
+                }
+            });
+            
+            // Logout
+            adminLogout.addEventListener('click', () => {
+                sessionStorage.clear();
+                window.location.href = '/';
+            });
+            
+            // Filter controls
+            document.getElementById('applyFilters').addEventListener('click', fetchIssues);
+            document.getElementById('clearFilters').addEventListener('click', () => {
+                document.getElementById('statusFilter').value = '';
+                document.getElementById('categoryFilter').value = '';
+                document.getElementById('radiusFilter').value = '5';
+                document.getElementById('radiusValue').textContent = '5 km';
+                fetchIssues();
+            });
+            
+            document.getElementById('radiusFilter').addEventListener('input', (e) => {
+                document.getElementById('radiusValue').textContent = `${e.target.value} km`;
+            });
+            
+            document.getElementById('refresh-data').addEventListener('click', fetchIssues);
+            
+            // Search functionality
+            document.getElementById('locate-me').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            map.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                            fetchIssues();
+                        },
+                        (err) => showMessage('Location access denied')
+                    );
+                }
+            });
+            
+            document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+            
+            // Address search
+            document.getElementById('addressInput').addEventListener('keypress', async (e) => {
+                if (e.key === 'Enter') {
+                    const query = e.target.value;
+                    if (!query) return;
+                    
+                    setLoading(true);
+                    try {
+                        const response = await fetch(
+                            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+                        );
+                        const results = await response.json();
+                        
+                        if (results.length > 0) {
+                            const result = results[0];
+                            map.setView([result.lat, result.lon], 16);
+                            fetchIssues();
+                            showMessage(`📍 Found: ${result.display_name}`, { timeout: 3000 });
+                        } else {
+                            showMessage('Location not found', { timeout: 2000 });
+                        }
+                    } catch (error) {
+                        showMessage('Search failed', { timeout: 2000 });
+                    } finally {
+                        setLoading(false);
+                    }
+                }
+            });
+            
+            console.log('Admin dashboard fully initialized');
+        });
+    </script>
+</body>
+</html>

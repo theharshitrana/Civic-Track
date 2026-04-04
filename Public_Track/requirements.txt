@@ -1,0 +1,27 @@
+# requirements.txt
+# Core Flask
+Werkzeug==2.3.7
+Flask==2.3.2
+Flask-Login==0.6.2
+
+# Database
+Flask-SQLAlchemy==3.0.3
+SQLAlchemy==2.0.42
+pg8000==1.30.4
+geoalchemy2==0.14.7
+alembic==1.16.4
+bcrypt==4.1.2
+
+# Extensions
+Flask-SocketIO==5.3.4
+Flask-Migrate==4.0.4
+Flask-Limiter==2.8.1
+Flask-Caching==2.0.2
+Flask-WTF==1.2.1
+
+# Utilities
+python-dotenv==1.0.0
+gunicorn==20.1.0
+python-dateutil>=2.8.2
+psycopg2-binary
+PyJWT==2.8.0 

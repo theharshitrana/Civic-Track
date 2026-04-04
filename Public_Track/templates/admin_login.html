@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PublicTrack Admin Login</title>
+    
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- App styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    
+    <style>
+        /* Additional login page styles */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: var(--bg);
+        }
+        
+        .login-card {
+            background: var(--panel);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .login-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .login-subtitle {
+            color: var(--subtext);
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 24px;
+            position: relative;
+        }
+        
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        /* Password input container with eye icon */
+        .password-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        /* Add padding for email (icon on left) */
+        .input-field.email-field {
+            padding-left: 50px;
+        }
+        
+        /* Add padding for password (icons on both sides) */
+        .input-field.password-field {
+            padding-left: 50px;
+            padding-right: 50px;
+        }
+        
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent);
+            font-size: 18px;
+            z-index: 1;
+        }
+        
+        /* Eye icon for password toggle */
+        .password-toggle {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--subtext);
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 1;
+            transition: all 0.3s ease;
+            background: transparent;
+            border: none;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .password-toggle:hover {
+            color: var(--accent);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .password-toggle:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            color: #04202a;
+            font-weight: 700;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(6, 182, 212, 0.3);
+        }
+        
+        .login-btn:active {
+            transform: translateY(0);
+        }
+        
+        .login-btn i {
+            margin-right: 8px;
+        }
+        
+        .error-message {
+            background: rgba(255, 92, 92, 0.1);
+            border: 1px solid rgba(255, 92, 92, 0.3);
+            color: #ff5c5c;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--subtext);
+            font-size: 13px;
+        }
+        
+        .back-link {
+            color: var(--accent);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover {
+            gap: 10px;
+            color: var(--accent-2);
+        }
+        
+        .floating-shape {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .shape-1 {
+            top: -100px;
+            left: -100px;
+        }
+        
+        .shape-2 {
+            bottom: -100px;
+            right: -100px;
+        }
+    </style>
+	 <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" />
+</head>
+<body>
+    <!-- Animated background shapes -->
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-box" role="status">
+            <div class="loader"><i class="fas fa-shield-alt fa-spin"></i></div>
+            <div class="loading-text">Authenticating...</div>
+        </div>
+    </div>
+    
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="PublicTrack" class="login-logo">
+                <h1 class="login-title">Admin Access</h1>
+                <p class="login-subtitle">Secure portal for municipal authorities</p>
+            </div>
+            
+            <div id="error-container" style="display: none;"></div>
+            
+            <!-- IMPORTANT: Removed onsubmit, using addEventListener instead -->
+            <form id="loginForm">
+                <!-- Email Field -->
+                <div class="input-group">
+                    <label class="input-label" for="email">Email Address</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" class="input-field email-field" placeholder="admin@publictrack.org" required autocomplete="email">
+                    </div>
+                </div>
+                
+                <!-- Password Field with Eye Toggle -->
+                <div class="input-group">
+                    <label class="input-label" for="password">Password</label>
+                    <div class="password-container">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" class="input-field password-field" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginButton">
+                    <i class="fas fa-sign-in-alt"></i> Login to Admin Dashboard
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <a href="/" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to PublicTrack Map
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Get elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const errorContainer = document.getElementById('error-container');
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const togglePassword = document.getElementById('togglePassword');
+        const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+        
+        // Toggle password visibility
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            togglePasswordIcon.className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+        });
+        
+        // Show error function
+        function showError(message) {
+            errorContainer.style.display = 'block';
+            errorContainer.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                errorContainer.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Handle login form submission
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // STOP the form from submitting normally
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+            
+            // Show loading
+            loadingOverlay.setAttribute('aria-hidden', 'false');
+            
+            try {
+                console.log('Attempting login with:', email);
+                
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password 
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (response.ok && data.success) {
+                    // Store admin session
+                    sessionStorage.setItem('adminToken', data.token);
+                    sessionStorage.setItem('adminName', data.username || 'admin');
+                    sessionStorage.setItem('adminId', data.user_id);
+                    
+                    // Show success message
+                    showError('Login successful! Redirecting...');
+                    
+                    // Redirect to admin dashboard
+                    setTimeout(() => {
+                        window.location.href = '/admin/dashboard';
+                    }, 500);
+                } else {
+                    showError(data.error || 'Invalid credentials');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Connection error. Please try again.');
+            } finally {
+                loadingOverlay.setAttribute('aria-hidden', 'true');
+            }
+        });
+        
+        // Add animation to input fields
+        document.querySelectorAll('.input-field').forEach(field => {
+            field.addEventListener('focus', () => {
+                field.style.transform = 'scale(1.02)';
+            });
+            
+            field.addEventListener('blur', () => {
+                field.style.transform = 'scale(1)';
+            });
+        });
+        
+        // Theme handling
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Press Enter to submit
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loginForm.dispatchEvent(new Event('submit'));
+            }
+        });
+        
+        console.log('Admin login page loaded');
+    </script>
+</body>
+</html>

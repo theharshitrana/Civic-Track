@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>PublicTrack-Community Issues</title>
+
+        <!-- Leaflet -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+        <!-- FontAwesome -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+        <!-- App styles -->
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+
+        <link rel="icon" href="{{ url_for('static', filename='images/favicon.png') }}" />
+    </head>
+    <body>
+        <!-- Loading -->
+        <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+            <div class="loading-box" role="status">
+                <div class="loader"><i class="fas fa-map-marked-alt fa-spin"></i></div>
+                <div class="loading-text">Preparing PublicTrack…</div>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="site-header">
+            <div class="container header-inner">
+                <div class="brand">
+                    <img
+                        id="mainLogo"
+                        src="{{ url_for('static', filename='images/logo.png') }}"
+                        alt="PublicTrack"
+                        class="brand-logo"
+                    />
+                    <div class="brand-text">
+                        <div class="brand-title">PublicTrack</div>
+                        <div class="brand-sub">Community Issues</div>
+                    </div>
+                </div>
+
+                <div class="header-controls">
+                    <!-- Admin Toggle Button (Sliding) -->
+                    <a
+                        href="/admin/login"
+                        class="admin-panel-toggle"
+                        style="text-decoration: none; margin-right: 8px"
+                        title="Admin Login"
+                    >
+                        <i class="fas fa-shield-alt" style="color: var(--accent)"></i>
+                        <span
+                            class="toggle-slider"
+                            style="
+                                display: inline-block;
+                                width: 40px;
+                                height: 20px;
+                                background: rgba(255, 255, 255, 0.1);
+                                border-radius: 30px;
+                                position: relative;
+                                vertical-align: middle;
+                                margin-left: 5px;
+                            "
+                        >
+                            <span
+                                style="
+                                    content: &quot;&quot;;
+                                    position: absolute;
+                                    width: 16px;
+                                    height: 16px;
+                                    background: var(--accent);
+                                    border-radius: 50%;
+                                    top: 2px;
+                                    left: 2px;
+                                    transition: all 0.3s ease;
+                                "
+                            ></span>
+                        </span>
+                    </a>
+
+                    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
+                        <i id="theme-icon" class="fas fa-moon"></i>
+                    </button>
+                    <button id="start-tour" class="btn-sm">Take Tour</button>
+                    <button id="refresh-data" class="btn-ghost" title="Refresh map data">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Message bar -->
+        <div class="container">
+            <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+        </div>
+
+        <!-- Main -->
+        <main class="container main-grid">
+            <!-- Map column -->
+            <section class="map-col">
+                <div class="map-topbar">
+                    <div class="search-box">
+                        <input
+                            id="addressInput"
+                            type="search"
+                            placeholder="Search address, street, village or home..."
+                            aria-label="Search address"
+                            autocomplete="off"
+                        />
+                        <button id="address-clear" class="icon-btn small" title="Clear">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <ul id="addr-suggestions" class="suggestions" role="listbox" hidden></ul>
+                    </div>
+
+                    <div class="map-controls">
+                        <button id="locate-me" class="map-btn" title="Use my location">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                        <button id="zoom-in" class="map-btn" title="Zoom in"><i class="fas fa-plus"></i></button>
+                        <button id="zoom-out" class="map-btn" title="Zoom out"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+
+                <div id="map" class="map" aria-label="Map"></div>
+            </section>
+
+            <!-- Controls column -->
+            <aside class="controls-col" aria-label="Controls and reporting form">
+                <div class="panel">
+                    <h3>Find & Filter</h3>
+                    <label>
+                        Status
+                        <select id="statusFilter">
+                            <option value="">All statuses</option>
+                            <option value="reported">Reported</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Category
+                        <select id="categoryFilter">
+                            <option value="">All categories</option>
+                            <option value="roads">Roads</option>
+                            <option value="water">Water</option>
+                            <option value="garbage">Garbage</option>
+                            <option value="lighting">Lighting</option>
+                            <option value="safety">Public Safety</option>
+                            <option value="obstructions">Obstructions</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Radius <span id="radiusValue">5 km</span>
+                        <input id="radiusFilter" type="range" min="1" max="50" value="5" />
+                    </label>
+
+                    <div class="panel-actions">
+                        <button id="applyFilters" class="btn-primary full">Apply Filters</button>
+                    </div>
+
+                    <hr />
+
+                    <h3>Report New Issue</h3>
+                    <p class="muted">Choose a point on the map, search an address, or use your live location.</p>
+
+                    <form id="issueForm" autocomplete="off" novalidate>
+                        <label
+                            >Title *
+                            <input id="title" type="text" maxlength="100" placeholder="Short title" required />
+                        </label>
+
+                        <label
+                            >Description *
+                            <textarea
+                                id="description"
+                                maxlength="300"
+                                placeholder="Describe what and where"
+                                required
+                            ></textarea>
+                            <div class="char-counter" id="charCounter">0 / 300</div>
+                        </label>
+
+                        <label
+                            >Category *
+                            <select id="category" required>
+                                <option value="">Select category</option>
+                                <option value="roads">Roads</option>
+                                <option value="water">Water</option>
+                                <option value="garbage">Garbage</option>
+                                <option value="lighting">Lighting</option>
+                                <option value="safety">Public Safety</option>
+                                <option value="obstructions">Obstructions</option>
+                            </select>
+                        </label>
+
+                        <label
+                            >Selected address
+                            <input id="addressHidden" type="text" readonly placeholder="No address selected" />
+                        </label>
+
+                        <div class="form-row">
+                            <button type="button" id="clearForm" class="btn-ghost">Clear</button>
+                            <button type="submit" id="submitBtn" class="btn-primary">Submit Report</button>
+                        </div>
+                    </form>
+
+                    <p class="small-muted">
+                        Tip: short simple phrases work best. If the search misses, try city + street name or village
+                        name.
+                    </p>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Tour modal -->
+        <div id="tour-overlay" class="tour-overlay" aria-hidden="true">
+            <div class="tour-card" role="dialog" aria-modal="true">
+                <header class="tour-head">
+                    <h4 id="tour-title">PublicTrack Tour</h4>
+                    <button id="tour-skip" class="icon-btn">Skip</button>
+                </header>
+
+                <div id="tour-content" class="tour-body" tabindex="0"></div>
+
+                <footer class="tour-foot">
+                    <button id="tour-prev" class="btn-ghost">Previous</button>
+                    <div class="tour-center"><span id="tour-step">1/1</span></div>
+                    <button id="tour-next" class="btn-primary">Next</button>
+                </footer>
+            </div>
+        </div>
+
+        <!-- Leaflet -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- Socket.IO -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+        <!-- App JS -->
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    </body>
+</html>
